@@ -13,6 +13,7 @@ type TCPClient struct {
 	ConnNum         int
 	ConnectInterval time.Duration
 	PendingWriteNum int
+	AutoReconnect   bool
 	NewAgent        func(*TCPConn) Agent
 	conns           ConnSet
 	wg              sync.WaitGroup
@@ -84,6 +85,7 @@ func (client *TCPClient) dial() net.Conn {
 func (client *TCPClient) connect() {
 	defer client.wg.Done()
 
+reconnect:
 	conn := client.dial()
 	if conn == nil {
 		return
@@ -103,11 +105,16 @@ func (client *TCPClient) connect() {
 	agent.Run()
 
 	// cleanup
-	tcpConn.Destroy()
+	tcpConn.Close()
 	client.Lock()
 	delete(client.conns, conn)
 	client.Unlock()
 	agent.OnClose()
+
+	if client.AutoReconnect {
+		time.Sleep(client.ConnectInterval)
+		goto reconnect
+	}
 }
 
 func (client *TCPClient) Close() {

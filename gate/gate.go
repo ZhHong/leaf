@@ -109,7 +109,7 @@ func (a *agent) Run() {
 
 func (a *agent) OnClose() {
 	if a.gate.AgentChanRPC != nil {
-		err := a.gate.AgentChanRPC.Open(0).Call0("CloseAgent", a)
+		err := a.gate.AgentChanRPC.Call0("CloseAgent", a)
 		if err != nil {
 			log.Error("chanrpc error: %v", err)
 		}
@@ -123,7 +123,10 @@ func (a *agent) WriteMsg(msg interface{}) {
 			log.Error("marshal message %v error: %v", reflect.TypeOf(msg), err)
 			return
 		}
-		a.conn.WriteMsg(data...)
+		err = a.conn.WriteMsg(data...)
+		if err != nil {
+			log.Error("write message %v error: %v", reflect.TypeOf(msg), err)
+		}
 	}
 }
 
